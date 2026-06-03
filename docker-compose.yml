@@ -1,0 +1,116 @@
+services:
+
+  # --- Infrastructure ---
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: shoplite-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"   # Management UI: http://localhost:15672 (guest/guest)
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  user-db:
+    image: postgres:16
+    container_name: shoplite-user-db
+    environment:
+      POSTGRES_DB: users
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5433:5432"
+    volumes:
+      - user-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  order-db:
+    image: postgres:16
+    container_name: shoplite-order-db
+    environment:
+      POSTGRES_DB: orders
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5434:5432"
+    volumes:
+      - order-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- Services ---
+
+  user-service:
+    build:
+      context: .
+      dockerfile: UserService/Dockerfile
+    container_name: shoplite-user-service
+    ports:
+      - "5001:8080"
+    environment:
+      ConnectionStrings__Default: "Host=user-db;Database=users;Username=postgres;Password=secret"
+      Jwt__Key: "super-secret-key-for-shoplite-at-least-32-chars!!"
+      Jwt__Issuer: "ShopLite"
+      Jwt__Audience: "ShopLite"
+    depends_on:
+      user-db:
+        condition: service_healthy
+
+  order-service:
+    build:
+      context: .
+      dockerfile: OrderService/Dockerfile
+    container_name: shoplite-order-service
+    ports:
+      - "5002:8080"
+    environment:
+      ConnectionStrings__Default: "Host=order-db;Database=orders;Username=postgres;Password=secret"
+      Jwt__Key: "super-secret-key-for-shoplite-at-least-32-chars!!"
+      Jwt__Issuer: "ShopLite"
+      Jwt__Audience: "ShopLite"
+      RabbitMQ__Host: "rabbitmq"
+      RabbitMQ__Username: "guest"
+      RabbitMQ__Password: "guest"
+    depends_on:
+      order-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: NotificationService/Dockerfile
+    container_name: shoplite-notification-service
+    environment:
+      RabbitMQ__Host: "rabbitmq"
+      RabbitMQ__Username: "guest"
+      RabbitMQ__Password: "guest"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  gateway:
+    build:
+      context: .
+      dockerfile: Gateway/Dockerfile
+    container_name: shoplite-gateway
+    ports:
+      - "5000:8080"
+    depends_on:
+      - user-service
+      - order-service
+
+volumes:
+  user-db-data:
+  order-db-data:
