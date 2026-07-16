@@ -246,13 +246,15 @@ git commit -m "feat(domain): add Result type for expected validation failures"
 
 ---
 
-## Task 3: Валидация `Order.Create`
+## Task 3: Валидация `Order.Create` (включает бывший Task 5)
 
 Здесь закрывается действующий баг: сейчас заказ с пустыми позициями и отрицательной ценой создаётся успешно.
 
+> **Поправка по ходу выполнения.** Изначально Task 3 (домен) и Task 5 (EF + контроллер) были разными задачами, и Task 3 предполагал прогон `dotnet test tests/OrderService.UnitTests` в одиночку. Так не работает: тестовый проект через `ProjectReference` тянет `OrderService.csproj`, а тот перестаёт компилироваться в ту же секунду, когда у `Order` закрываются сеттеры (`CS0272`, `CS0200`, `CS0122` в `OrdersController`). Зелёная фаза Task 3 недостижима без правок Task 5, так что задачи слиты: домен, маппинг EF и контроллер едут одним коммитом. Альтернатива — отдельная сборка под домен, чтобы тесты ссылались только на неё — отвергнута спекой для одного агрегата.
+
 **Files:**
 - Create: `OrderService/Domain/OrderErrors.cs`, `OrderService/Domain/NewOrderItem.cs`
-- Modify: `OrderService/Models/Order.cs`
+- Modify: `OrderService/Models/Order.cs`, `OrderService/Data/OrderDbContext.cs`, `OrderService/Controllers/OrdersController.cs`
 - Test: `tests/OrderService.UnitTests/Domain/OrderCreateTests.cs`
 
 - [ ] **Step 1: Написать падающие тесты**
@@ -680,11 +682,11 @@ git commit -m "feat(domain): guard order status transitions"
 
 ---
 
-## Task 5: Подключить домен к EF и контроллеру
+## Task 5: Подключить домен к EF и контроллеру — СЛИТ В TASK 3
 
-После Task 3 решение не собирается: контроллер присваивает `Items` и `Total`, которые стали приватными. Здесь чиним.
+Эта задача больше не выполняется отдельно. Причина в поправке к Task 3: закрытие сеттеров `Order` немедленно ломает компиляцию `OrdersController`, а тестовый проект ссылается на `OrderService.csproj` — значит, до этих правок Task 3 нельзя даже прогнать. Шаги ниже оставлены как справка; они выполнены в составе Task 3.
 
-**Files:**
+**Files (выполнено в Task 3):**
 - Modify: `OrderService/Data/OrderDbContext.cs`, `OrderService/Controllers/OrdersController.cs`
 
 - [ ] **Step 1: Настроить маппинг backing field**
