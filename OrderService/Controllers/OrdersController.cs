@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OrderService.Data;
+using OrderService.Domain;
 using OrderService.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -20,17 +21,19 @@ public class OrdersController(OrderDbContext db, IPublishEndpoint publisher) : C
     {
         var userId = Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
 
-        var order = new Order
+        var items = req.Items
+            .Select(i => new NewOrderItem(i.ProductName, i.Quantity, i.Price))
+            .ToList();
+
+        var result = Order.Create(userId, items);
+        if (!result.IsSuccess)
         {
-            UserId = userId,
-            Items = req.Items.Select(i => new OrderItem
-            {
-                ProductName = i.ProductName,
-                Quantity = i.Quantity,
-                Price = i.Price
-            }).ToList()
-        };
-        order.Total = order.Items.Sum(i => i.Price * i.Quantity);
+            var error = result.Error!.Value;
+            ModelState.AddModelError(error.Code, error.Message);
+            return ValidationProblem(ModelState);
+        }
+
+        var order = result.Value;
 
         db.Orders.Add(order);
         await db.SaveChangesAsync();
