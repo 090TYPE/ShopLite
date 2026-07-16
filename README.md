@@ -1,6 +1,6 @@
-# ShopLite — .NET 9 Microservices
+# ShopLite — .NET 10 Microservices
 
-A minimal but production-shaped microservices project built with .NET 9.  
+A minimal but production-shaped microservices project built with .NET 10.  
 Demonstrates async event-driven communication, isolated databases per service, and API Gateway routing.
 
 ## Architecture
@@ -41,7 +41,7 @@ OrderService publishes an event to the message bus — NotificationService consu
 |-----------|-----------|
 | API Gateway | YARP 2.3 |
 | Message Bus | MassTransit 8 + RabbitMQ |
-| ORM | EF Core 9 + PostgreSQL |
+| ORM | EF Core 10 + PostgreSQL |
 | Auth | JWT Bearer |
 | Containers | Docker Compose |
 
