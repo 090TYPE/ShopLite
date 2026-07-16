@@ -6,7 +6,7 @@
 
 **Architecture:** Домен живёт в `OrderService/Domain/` без отдельной сборки. `Order.Create` — единственная точка рождения заказа, возвращает `Result<Order>` (не исключение: невалидный ввод ожидаем). Контроллер маппит `Result.Failure` в 400. Интеграционные тесты поднимают Postgres через Testcontainers и подменяют `DbContext` в `WebApplicationFactory`; брокер там in-memory (MassTransit.TestFramework). Реальный RabbitMQ — только в E2E.
 
-**Tech Stack:** .NET 9, EF Core 9, MassTransit 8.3.5, xunit, FluentAssertions 7, NSubstitute, Testcontainers, coverlet.
+**Tech Stack:** .NET 10, EF Core 10, MassTransit 8.3.5, xunit, FluentAssertions 7, NSubstitute, Testcontainers, coverlet.
 
 **Спека:** `docs/superpowers/specs/2026-07-16-shoplite-stage1-tests-design.md`
 
@@ -14,15 +14,13 @@
 
 ## Критично для окружения
 
-**Все команды `dotnet` запускать из `C:\Users\090\Documents\GitHub\ShopLite`.** В соседнем репозитории CryptoAI лежит `global.json`, пиннящий SDK 8.0.422; из чужого каталога резолвится он и сборка падает с `NETSDK1045: не поддерживает нацеливание .NET 9.0`. Из каталога ShopLite резолвится SDK 10.0.300 и всё собирается чисто.
+**Все команды `dotnet` запускать из `C:\Users\090\Documents\GitHub\ShopLite`.** В соседнем репозитории CryptoAI лежит `global.json`, пиннящий SDK 8.0.422; из чужого каталога резолвится он и сборка падает с `NETSDK1045`. Из каталога ShopLite резолвится SDK 10.0.300 и всё собирается чисто.
 
 В PowerShell-инструменте рабочий каталог сбрасывается между вызовами, поэтому каждая команда начинается с `Set-Location`.
 
 **FluentAssertions строго 7.x.** Начиная с 8.0 лицензия платная для коммерческого использования; 7.2.0 — последняя под Apache 2.0. Портфельному репозиторию нужна именно она.
 
-**`dotnet new xunit` скаффолдится с `-f net8.0`, а не `net9.0`.** Установленный шаблон предлагает на выбор только `net8.0` и `net10.0` (`dotnet new xunit -h`), поэтому `-f net9.0` падает. Это неважно: следующим шагом каждой задачи содержимое `.csproj` заменяется целиком, и `TargetFramework` там уже `net9.0`. Флаг нужен лишь для того, чтобы шаблон не подставил `net10.0` по умолчанию.
-
-**`dotnet add reference` до замены csproj не сработает** по той же причине (net8.0 против net9.0). Не нужен: `ProjectReference` прописан прямо в XML, который заменяет csproj.
+**Репозиторий переведён на .NET 10** (задача 2b, коммит `5cc5272`). Изначально он был на net9.0, но выяснилось, что рантайма .NET 9 на машине нет вообще — только 8 и 10. Сборка проходила (SDK 10 компилирует под net9.0 по reference-пакетам), а всё исполняемое падало с `Framework: 'Microsoft.NETCore.App', version '9.0.0' not found`. Плюс .NET 9 — STS-релиз, снятый с поддержки в мае 2026. Все проекты теперь `net10.0`, Microsoft-пакеты на 10.x, Dockerfile'ы на `sdk:10.0` / `aspnet:10.0` (у NotificationService — `runtime:10.0`, он воркер без HTTP).
 
 **Docker Desktop должен быть запущен** начиная с Task 7 — Testcontainers без него не поднимется. Проверка: `docker version --format '{{.Server.Version}}'` (на машине подтверждён 29.5.2).
 
@@ -70,7 +68,7 @@
 
 ```powershell
 Set-Location C:\Users\090\Documents\GitHub\ShopLite
-dotnet new xunit -o tests/OrderService.UnitTests -f net8.0
+dotnet new xunit -o tests/OrderService.UnitTests -f net10.0
 dotnet sln ShopLite.sln add tests/OrderService.UnitTests/OrderService.UnitTests.csproj
 dotnet add tests/OrderService.UnitTests/OrderService.UnitTests.csproj reference OrderService/OrderService.csproj
 ```
@@ -82,7 +80,7 @@ dotnet add tests/OrderService.UnitTests/OrderService.UnitTests.csproj reference 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
@@ -803,7 +801,7 @@ invalid payloads now return 400 instead of a bogus order."
 
 ```powershell
 Set-Location C:\Users\090\Documents\GitHub\ShopLite
-dotnet new xunit -o tests/UserService.UnitTests -f net8.0
+dotnet new xunit -o tests/UserService.UnitTests -f net10.0
 dotnet sln ShopLite.sln add tests/UserService.UnitTests/UserService.UnitTests.csproj
 Remove-Item tests/UserService.UnitTests/UnitTest1.cs
 ```
@@ -813,7 +811,7 @@ Remove-Item tests/UserService.UnitTests/UnitTest1.cs
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
@@ -1109,7 +1107,7 @@ public sealed class ApiMarker;
 
 ```powershell
 Set-Location C:\Users\090\Documents\GitHub\ShopLite
-dotnet new xunit -o tests/UserService.IntegrationTests -f net8.0
+dotnet new xunit -o tests/UserService.IntegrationTests -f net10.0
 dotnet sln ShopLite.sln add tests/UserService.IntegrationTests/UserService.IntegrationTests.csproj
 Remove-Item tests/UserService.IntegrationTests/UnitTest1.cs
 ```
@@ -1119,7 +1117,7 @@ Remove-Item tests/UserService.IntegrationTests/UnitTest1.cs
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
@@ -1130,7 +1128,7 @@ Remove-Item tests/UserService.IntegrationTests/UnitTest1.cs
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
     <PackageReference Include="FluentAssertions" Version="7.2.0" />
     <PackageReference Include="Testcontainers.PostgreSql" Version="4.1.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.10" />
     <PackageReference Include="coverlet.collector" Version="6.0.2" />
   </ItemGroup>
   <ItemGroup>
@@ -1411,7 +1409,7 @@ git commit -m "test: cover auth endpoints against real Postgres"
 
 ```powershell
 Set-Location C:\Users\090\Documents\GitHub\ShopLite
-dotnet new xunit -o tests/OrderService.IntegrationTests -f net8.0
+dotnet new xunit -o tests/OrderService.IntegrationTests -f net10.0
 dotnet sln ShopLite.sln add tests/OrderService.IntegrationTests/OrderService.IntegrationTests.csproj
 Remove-Item tests/OrderService.IntegrationTests/UnitTest1.cs
 ```
@@ -1421,7 +1419,7 @@ Remove-Item tests/OrderService.IntegrationTests/UnitTest1.cs
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
@@ -1432,7 +1430,7 @@ Remove-Item tests/OrderService.IntegrationTests/UnitTest1.cs
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
     <PackageReference Include="FluentAssertions" Version="7.2.0" />
     <PackageReference Include="Testcontainers.PostgreSql" Version="4.1.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.10" />
     <PackageReference Include="MassTransit.TestFramework" Version="8.3.5" />
     <PackageReference Include="coverlet.collector" Version="6.0.2" />
   </ItemGroup>
@@ -1750,7 +1748,7 @@ zero quantity and negative price must not create an order."
 
 ```powershell
 Set-Location C:\Users\090\Documents\GitHub\ShopLite
-dotnet new xunit -o tests/ShopLite.E2ETests -f net8.0
+dotnet new xunit -o tests/ShopLite.E2ETests -f net10.0
 dotnet sln ShopLite.sln add tests/ShopLite.E2ETests/ShopLite.E2ETests.csproj
 Remove-Item tests/ShopLite.E2ETests/UnitTest1.cs
 ```
@@ -1760,7 +1758,7 @@ Remove-Item tests/ShopLite.E2ETests/UnitTest1.cs
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
@@ -1772,7 +1770,7 @@ Remove-Item tests/ShopLite.E2ETests/UnitTest1.cs
     <PackageReference Include="FluentAssertions" Version="7.2.0" />
     <PackageReference Include="Testcontainers.PostgreSql" Version="4.1.0" />
     <PackageReference Include="Testcontainers.RabbitMq" Version="4.1.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.10" />
     <PackageReference Include="MassTransit.RabbitMQ" Version="8.3.5" />
     <PackageReference Include="coverlet.collector" Version="6.0.2" />
   </ItemGroup>
@@ -2111,6 +2109,6 @@ git commit -m "docs: document test suite, coverage and design decisions"
 - Outbox, идемпотентность, сага — Этап 2.
 - OpenTelemetry, Serilog, health checks, метрики — Этап 3.
 - Kubernetes, Helm — Этап 4.
-- `ci.yml`, бейджи, GHCR — Этап 5. Там же ставится `9.0.x` через `setup-dotnet`.
+- `ci.yml`, бейджи, GHCR — Этап 5. Там же ставится `10.0.x` через `setup-dotnet`.
 - Тесты Gateway: YARP-конфиг без собственного кода, покрывать нечего до Этапа 4.
 - Тесты `NotificationService` в отрыве: консьюмер только логирует; его поведение проверяется E2E.
