@@ -20,6 +20,10 @@
 
 **FluentAssertions строго 7.x.** Начиная с 8.0 лицензия платная для коммерческого использования; 7.2.0 — последняя под Apache 2.0. Портфельному репозиторию нужна именно она.
 
+**`dotnet new xunit` скаффолдится с `-f net8.0`, а не `net9.0`.** Установленный шаблон предлагает на выбор только `net8.0` и `net10.0` (`dotnet new xunit -h`), поэтому `-f net9.0` падает. Это неважно: следующим шагом каждой задачи содержимое `.csproj` заменяется целиком, и `TargetFramework` там уже `net9.0`. Флаг нужен лишь для того, чтобы шаблон не подставил `net10.0` по умолчанию.
+
+**`dotnet add reference` до замены csproj не сработает** по той же причине (net8.0 против net9.0). Не нужен: `ProjectReference` прописан прямо в XML, который заменяет csproj.
+
 **Docker Desktop должен быть запущен** начиная с Task 7 — Testcontainers без него не поднимется. Проверка: `docker version --format '{{.Server.Version}}'` (на машине подтверждён 29.5.2).
 
 ---
@@ -66,7 +70,7 @@
 
 ```powershell
 Set-Location C:\Users\090\Documents\GitHub\ShopLite
-dotnet new xunit -o tests/OrderService.UnitTests -f net9.0
+dotnet new xunit -o tests/OrderService.UnitTests -f net8.0
 dotnet sln ShopLite.sln add tests/OrderService.UnitTests/OrderService.UnitTests.csproj
 dotnet add tests/OrderService.UnitTests/OrderService.UnitTests.csproj reference OrderService/OrderService.csproj
 ```
@@ -799,7 +803,7 @@ invalid payloads now return 400 instead of a bogus order."
 
 ```powershell
 Set-Location C:\Users\090\Documents\GitHub\ShopLite
-dotnet new xunit -o tests/UserService.UnitTests -f net9.0
+dotnet new xunit -o tests/UserService.UnitTests -f net8.0
 dotnet sln ShopLite.sln add tests/UserService.UnitTests/UserService.UnitTests.csproj
 Remove-Item tests/UserService.UnitTests/UnitTest1.cs
 ```
@@ -1105,7 +1109,7 @@ public sealed class ApiMarker;
 
 ```powershell
 Set-Location C:\Users\090\Documents\GitHub\ShopLite
-dotnet new xunit -o tests/UserService.IntegrationTests -f net9.0
+dotnet new xunit -o tests/UserService.IntegrationTests -f net8.0
 dotnet sln ShopLite.sln add tests/UserService.IntegrationTests/UserService.IntegrationTests.csproj
 Remove-Item tests/UserService.IntegrationTests/UnitTest1.cs
 ```
@@ -1407,7 +1411,7 @@ git commit -m "test: cover auth endpoints against real Postgres"
 
 ```powershell
 Set-Location C:\Users\090\Documents\GitHub\ShopLite
-dotnet new xunit -o tests/OrderService.IntegrationTests -f net9.0
+dotnet new xunit -o tests/OrderService.IntegrationTests -f net8.0
 dotnet sln ShopLite.sln add tests/OrderService.IntegrationTests/OrderService.IntegrationTests.csproj
 Remove-Item tests/OrderService.IntegrationTests/UnitTest1.cs
 ```
@@ -1746,7 +1750,7 @@ zero quantity and negative price must not create an order."
 
 ```powershell
 Set-Location C:\Users\090\Documents\GitHub\ShopLite
-dotnet new xunit -o tests/ShopLite.E2ETests -f net9.0
+dotnet new xunit -o tests/ShopLite.E2ETests -f net8.0
 dotnet sln ShopLite.sln add tests/ShopLite.E2ETests/ShopLite.E2ETests.csproj
 Remove-Item tests/ShopLite.E2ETests/UnitTest1.cs
 ```
