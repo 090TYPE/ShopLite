@@ -16,4 +16,10 @@ public static class OrderErrors
 
     public static readonly Error UnknownUser =
         new("orders.unknown_user", "Order must belong to a user.");
+
+    public static readonly Error InvalidTransition =
+        new("orders.invalid_transition", "Order status transition is not allowed.");
+
+    public static readonly Error CannotCancelDelivered =
+        new("orders.cannot_cancel_delivered", "A delivered order cannot be cancelled.");
 }

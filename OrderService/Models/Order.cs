@@ -53,6 +53,33 @@ public class Order
 
         return Result<Order>.Success(order);
     }
+
+    public Result<Order> MarkProcessing() => TransitionTo(OrderStatus.Processing, OrderStatus.Pending);
+
+    public Result<Order> MarkShipped() => TransitionTo(OrderStatus.Shipped, OrderStatus.Processing);
+
+    public Result<Order> MarkDelivered() => TransitionTo(OrderStatus.Delivered, OrderStatus.Shipped);
+
+    public Result<Order> Cancel()
+    {
+        if (Status == OrderStatus.Delivered)
+            return Result<Order>.Failure(OrderErrors.CannotCancelDelivered);
+
+        if (Status == OrderStatus.Cancelled)
+            return Result<Order>.Failure(OrderErrors.InvalidTransition);
+
+        Status = OrderStatus.Cancelled;
+        return Result<Order>.Success(this);
+    }
+
+    private Result<Order> TransitionTo(OrderStatus target, OrderStatus requiredCurrent)
+    {
+        if (Status != requiredCurrent)
+            return Result<Order>.Failure(OrderErrors.InvalidTransition);
+
+        Status = target;
+        return Result<Order>.Success(this);
+    }
 }
 
 public class OrderItem
