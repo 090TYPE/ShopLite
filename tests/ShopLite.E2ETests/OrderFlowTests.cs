@@ -31,6 +31,10 @@ public class OrderFlowTests(InfrastructureFixture infra)
         using var orderClient = orders.CreateClient();
         orderClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
+        // Публикация внутри обработчика блокируется, если брокер недоступен, и
+        // ждёт вечно — без таймаута тест повесил бы CI вместо того, чтобы упасть.
+        orderClient.Timeout = TimeSpan.FromSeconds(30);
+
         var created = await orderClient.PostAsJsonAsync("/api/orders",
             new { Items = new[] { new { ProductName = "Keyboard", Quantity = 2, Price = 49.50m } } });
         created.IsSuccessStatusCode.Should().BeTrue();

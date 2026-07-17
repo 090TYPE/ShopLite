@@ -158,8 +158,15 @@ reportgenerator -reports:"tests/**/TestResults/**/coverage.cobertura.xml" \
                 -targetdir:"coverage-report" -reporttypes:Html
 ```
 
-Line coverage **96.6%**, branch **91.6%**. The domain — `Result<T>`, `OrderErrors`,
-`NewOrderItem` — is at 100%, and `Order` at 98.1%.
+Line coverage **96.6%**, branch **91.6%**, across UserService, OrderService and
+Contracts. The domain — `Result<T>`, `OrderErrors`, `NewOrderItem` — is at 100%,
+and `Order` at 98.1%.
+
+Not covered, deliberately: **Gateway** is YARP configuration with no code of its
+own, and **NotificationService**'s consumer only writes a log line. The E2E test
+proves the event reaches *a* consumer through a real broker — it does not exercise
+`OrderCreatedConsumer` itself, which sits at zero coverage until it does something
+worth asserting.
 
 ## Design decisions
 

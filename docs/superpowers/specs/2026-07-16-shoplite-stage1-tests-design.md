@@ -91,7 +91,7 @@ tests/
 | `UserService.UnitTests` | `JwtTokenGenerator` (claims, срок, подпись), хеш пароля |
 | `OrderService.IntegrationTests` | Testcontainers Postgres + `WebApplicationFactory`; POST /orders → 201 → строка в БД; 400 на невалидном; 401 без токена; чужой заказ → 404 |
 | `UserService.IntegrationTests` | register → 201; дубль email → 409; login → токен; неверный пароль → 401 |
-| `ShopLite.E2ETests` | register → login → order → `OrderCreated` доехал до `NotificationService` |
+| `ShopLite.E2ETests` | register → login → order → `OrderCreated` доехал через настоящий RabbitMQ до консьюмера |
 
 ### Брокер в тестах
 
