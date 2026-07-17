@@ -1814,7 +1814,10 @@ public class InfrastructureFixture : IAsyncLifetime
     public string UserDbConnectionString => _userDb.GetConnectionString();
     public string OrderDbConnectionString => _orderDb.GetConnectionString();
 
-    /// <summary>amqp://guest:guest@host:port — MassTransit конфигурируется этим URI.</summary>
+    /// <summary>
+    /// amqp://rabbitmq:rabbitmq@host:port — MassTransit конфигурируется этим URI.
+    /// Учётные данные задаёт модуль Testcontainers, и это не guest/guest.
+    /// </summary>
     public Uri RabbitUri => new(_rabbit.GetConnectionString());
 
     public async Task InitializeAsync()
@@ -1852,6 +1855,13 @@ namespace ShopLite.E2ETests;
 /// Подписывается на то же событие, что и NotificationService, и делает факт
 /// доставки наблюдаемым для теста.
 /// </summary>
+/// <remarks>
+/// Одноразовый: <see cref="Received"/> статичен и живёт на всю сборку, а
+/// TrySetResult защёлкивает только первое сообщение. Второй тест в этом
+/// проекте получил бы уже готовый результат от первого — то есть ложный
+/// зелёный. Прежде чем добавлять тесты, замените статику на инстансную
+/// фикстуру.
+/// </remarks>
 public class OrderCreatedSpy : IConsumer<OrderCreated>
 {
     private static readonly TaskCompletionSource<OrderCreated> Received =

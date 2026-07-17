@@ -18,7 +18,10 @@ public class InfrastructureFixture : IAsyncLifetime
     public string UserDbConnectionString => _userDb.GetConnectionString();
     public string OrderDbConnectionString => _orderDb.GetConnectionString();
 
-    /// <summary>amqp://guest:guest@host:port — MassTransit конфигурируется этим URI.</summary>
+    /// <summary>
+    /// amqp://rabbitmq:rabbitmq@host:port — MassTransit конфигурируется этим URI.
+    /// Учётные данные задаёт модуль Testcontainers, и это не guest/guest.
+    /// </summary>
     public Uri RabbitUri => new(_rabbit.GetConnectionString());
 
     public async Task InitializeAsync()
