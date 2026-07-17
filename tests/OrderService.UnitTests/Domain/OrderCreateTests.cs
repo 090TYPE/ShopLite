@@ -19,7 +19,8 @@ public class OrderCreateTests
 
         result.IsSuccess.Should().BeTrue();
         result.Value.UserId.Should().Be(UserId);
-        result.Value.Items.Should().HaveCount(1);
+        result.Value.Items.Should().ContainSingle()
+            .Which.Should().BeEquivalentTo(new { ProductName = "Keyboard", Quantity = 2, Price = 49.50m });
     }
 
     [Fact]
@@ -32,6 +33,7 @@ public class OrderCreateTests
         ]);
 
         // 2 * 49.50 + 3 * 10.00
+        result.IsSuccess.Should().BeTrue();
         result.Value.Total.Should().Be(129.00m);
     }
 
@@ -40,6 +42,7 @@ public class OrderCreateTests
     {
         var result = Order.Create(UserId, [ValidItem()]);
 
+        result.IsSuccess.Should().BeTrue();
         result.Value.Status.Should().Be(OrderStatus.Pending);
     }
 
