@@ -1,5 +1,10 @@
 # ShopLite — .NET 10 Microservices
 
+[![CI](https://github.com/090TYPE/ShopLite/actions/workflows/ci.yml/badge.svg)](https://github.com/090TYPE/ShopLite/actions/workflows/ci.yml)
+[![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+[![Tests](https://img.shields.io/badge/tests-42%20passing-brightgreen?logo=github)](https://github.com/090TYPE/ShopLite/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A minimal but production-shaped microservices project built with .NET 10.  
 Demonstrates async event-driven communication, isolated databases per service, and API Gateway routing.
 
