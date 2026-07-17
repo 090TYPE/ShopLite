@@ -24,6 +24,10 @@
 
 **Docker Desktop должен быть запущен** начиная с Task 7 — Testcontainers без него не поднимется. Проверка: `docker version --format '{{.Server.Version}}'` (на машине подтверждён 29.5.2).
 
+**`services.RemoveMassTransit()` вызвать нельзя — метод `internal` в MassTransit 8.3.5.** Выяснено при выполнении Task 9 чтением метаданных сборки: публичен только `RemoveMassTransitHostedService`, своего публичного хелпера `MassTransit.TestFramework` не даёт. К счастью, он и не нужен: дизассемблирование показало, что `AddMassTransitTestHarness` сам первым делом зовёт `RemoveMassTransit`, а затем `AddMassTransit`. Для in-memory харнесса достаточно одного вызова `AddMassTransitTestHarness()`.
+
+Для Task 10 это не спасение: там нужен настоящий Rabbit, регистрируемый через `AddMassTransit`, у которого внутреннего снятия регистрации нет — см. предупреждение в самой задаче.
+
 ---
 
 ## Структура файлов
@@ -1507,7 +1511,8 @@ public class OrderApiFactory(string connectionString) : WebApplicationFactory<Ap
 
             // Rabbit из Program.cs недоступен и не является предметом этих тестов —
             // заменяем транспорт на in-memory harness. Реальный брокер проверяется в E2E.
-            services.RemoveMassTransit();
+            // AddMassTransitTestHarness сам вызывает внутренний RemoveMassTransit,
+            // снимая регистрации Rabbit-шины: отдельный вызов не нужен и не публичен.
             services.AddMassTransitTestHarness();
         });
     }
@@ -1909,8 +1914,11 @@ public class OrderApiFactory(string connectionString, Uri rabbitUri)
             services.AddDbContext<OrderDbContext>(opt => opt.UseNpgsql(connectionString));
 
             // Настоящий Rabbit из контейнера вместо хоста из appsettings.
-            services.RemoveMassTransit();
-            services.AddMassTransit(x =>
+            // AddMassTransitTestHarness, а не AddMassTransit: он единственный, кто
+            // снимает уже сделанную в Program.cs регистрацию Rabbit-шины (публичного
+            // RemoveMassTransit в 8.3.5 нет — метод internal). Транспорт при этом
+            // настоящий: харнесс лишь конфигурирует шину, UsingRabbitMq остаётся в силе.
+            services.AddMassTransitTestHarness(x =>
             {
                 x.AddConsumer<OrderCreatedSpy>();
                 x.UsingRabbitMq((ctx, cfg) =>
