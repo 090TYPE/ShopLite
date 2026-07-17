@@ -127,6 +127,64 @@ shoplite-order-service         | info: ... Published OrderCreated ...
 shoplite-notification-service  | 📧 [NOTIFICATION] Order #abc received — Total: $1,059.97
 ```
 
+## Tests
+
+```bash
+dotnet test ShopLite.sln
+```
+
+**42 tests, no manual setup.** PostgreSQL and RabbitMQ are started as throwaway
+containers by [Testcontainers](https://testcontainers.com/) — you need Docker
+running, nothing else installed.
+
+| Project | What it proves |
+|---------|----------------|
+| `OrderService.UnitTests` | Order invariants and status transitions, no infrastructure |
+| `UserService.UnitTests` | JWT issuance: claims, expiry, signing algorithm |
+| `OrderService.IntegrationTests` | Order API against a real PostgreSQL |
+| `UserService.IntegrationTests` | Auth API against a real PostgreSQL |
+| `ShopLite.E2ETests` | register → login → order → event delivered through a real RabbitMQ |
+
+The E2E test is the one worth reading. It boots both services, registers a user,
+takes the JWT that **UserService actually issued**, authenticates with it against
+**OrderService**, places an order, and waits for `OrderCreated` to arrive at a
+consumer — through a real broker in a real container. Every seam is real.
+
+### Coverage
+
+```bash
+dotnet test ShopLite.sln --collect:"XPlat Code Coverage"
+reportgenerator -reports:"tests/**/TestResults/**/coverage.cobertura.xml" \
+                -targetdir:"coverage-report" -reporttypes:Html
+```
+
+Line coverage **96.6%**, branch **91.6%**. The domain — `Result<T>`, `OrderErrors`,
+`NewOrderItem` — is at 100%, and `Order` at 98.1%.
+
+## Design decisions
+
+**Why `Result<T>` and not exceptions.** Invalid client input is an expected
+outcome, not an exceptional one. With exceptions, a test for HTTP 400 ends up
+verifying exception middleware rather than the business rule that rejected the
+payload.
+
+**Why an order can only be born in `Order.Create`.** `Order`'s constructor and
+setters are private, and `Items` is an `IReadOnlyList` over a private field. It is
+not *convention* that stops you creating an order with a negative total — it is the
+compiler. Before this, `OrdersController` computed the total inline with no
+validation at all, so an order with no items or a price of `-5` was accepted and
+persisted. Extracting the aggregate broke the controller's compilation on the spot,
+which is exactly the point.
+
+**Why the broker is in-memory in integration tests but real in E2E.** Integration
+tests exist to check HTTP and persistence; booting a broker for them buys latency,
+not confidence. Delivery through RabbitMQ is a distinct claim, so it gets a distinct
+test where the broker is real.
+
+**Why services don't call each other over HTTP.** OrderService publishes an event
+and does not know or care who consumes it. NotificationService can be down, slow, or
+replaced without OrderService changing.
+
 ## Swagger UI
 
 - UserService: http://localhost:5001/swagger
@@ -140,8 +198,15 @@ ShopLite/
 ├── Contracts/                  # Shared event contracts (OrderCreated)
 ├── UserService/                # JWT auth service
 ├── OrderService/               # Orders + event publishing
+│   └── Domain/                 # Order aggregate, Result<T>, error catalogue
 ├── NotificationService/        # Worker: consumes OrderCreated
 ├── Gateway/                    # YARP reverse proxy
+├── tests/
+│   ├── OrderService.UnitTests/         # Domain rules, no infrastructure
+│   ├── UserService.UnitTests/          # JWT issuance
+│   ├── OrderService.IntegrationTests/  # Order API + real PostgreSQL
+│   ├── UserService.IntegrationTests/   # Auth API + real PostgreSQL
+│   └── ShopLite.E2ETests/              # Full flow through a real RabbitMQ
 ├── docker-compose.yml
 └── ShopLite.sln
 ```

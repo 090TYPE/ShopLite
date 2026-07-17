@@ -18,6 +18,10 @@ appsettings.Development.json
 .idea/
 .vscode/
 
+## Test artifacts
+TestResults/
+coverage-report/
+
 ## OS
 .DS_Store
 Thumbs.db
