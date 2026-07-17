@@ -1,17 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using UserService.Data;
 using UserService.Models;
+using UserService.Services;
 
 namespace UserService.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public class AuthController(UserDbContext db, IConfiguration config) : ControllerBase
+public class AuthController(UserDbContext db, IJwtTokenGenerator tokens) : ControllerBase
 {
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest req)
@@ -39,25 +36,7 @@ public class AuthController(UserDbContext db, IConfiguration config) : Controlle
         if (user is null || !BCrypt.Net.BCrypt.Verify(req.Password, user.PasswordHash))
             return Unauthorized(new { message = "Invalid credentials" });
 
-        return Ok(new { token = GenerateJwt(user) });
-    }
-
-    private string GenerateJwt(User user)
-    {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]!));
-        var token = new JwtSecurityToken(
-            issuer: config["Jwt:Issuer"],
-            audience: config["Jwt:Audience"],
-            claims:
-            [
-                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim("name", user.Name)
-            ],
-            expires: DateTime.UtcNow.AddHours(24),
-            signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return Ok(new { token = tokens.Generate(user) });
     }
 }
 
